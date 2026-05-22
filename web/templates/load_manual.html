@@ -1,0 +1,95 @@
+{% load static %} <!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>MF-AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="apple-touch-icon" href="{% static 'images/app-icon.png' %}">
+    <style>
+        body { font-family: system-ui, sans-serif; background:#f0f4f8; margin:0; padding:0; color:#222; }
+        .container { max-width:720px; margin:0 auto; padding:24px; }
+        h1 { text-align:center; color:#172E7C; margin-bottom:20px; }
+        h2 { color:#172E7C; margin-top:28px; font-size:1.2rem; }
+        form { background:#fff; border:1px solid #dde3ec; padding:20px; border-radius:12px; margin-top:12px; }
+        label { display:block; margin:12px 0 6px; font-weight:500; color:#172E7C; }
+        input[type="text"], select, input[type="file"] {
+            width:100%; padding:14px; font-size:16px; border:1px solid #bbb; border-radius:8px; margin-bottom:10px; box-sizing: border-box;
+        }
+        button { width:100%; padding:14px; font-size:16px; border:none; border-radius:8px; background:#172E7C; color:#fff; cursor:pointer; margin-top:8px; }
+        button:hover { background:#2d4a73; }
+        .alert { padding:12px; border-radius:8px; margin-bottom:16px; font-size:14px; }
+        .alert-error { background:#fff2f2; border:1px solid #cc0000; color:#8b0000; }
+        .alert-info { background:#f0f6ff; border:1px solid #b3c6e6; color:#172E7C; }
+        #loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+        }
+        .spinner {
+            display: inline-block; border: 5px solid rgba(0,0,0,0.1); border-left-color: #172E7C;
+            border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite;
+        }
+        #loading-overlay p {
+            margin-top: 20px; font-size: 1.1rem; color: #172E7C; font-weight: 500;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div id="loading-overlay">
+        <div class="spinner"></div>
+        <p>PDFを解析し、AIが学習しています...<br>ファイルサイズによっては数分かかる場合があります。</p>
+    </div>
+    <div class="container">
+        <h1>MF AI</h1>
+
+        {% if error %}
+            <div class="alert alert-error"><strong>エラー:</strong> {{ error }}</div>
+        {% endif %}
+        {% if not_found %}
+            <div class="alert alert-info">ご指定の型番のマニュアルは見つかりませんでした。<br>お手数ですが、メーカーと型番を再度ご確認ください。</div>
+        {% endif %}
+
+        <h2>PDFファイルをWeb検索</h2>
+        <form id="web-search-form" method="post">
+            {% csrf_token %}
+            <label for="brand">メーカーを選んでください</label>
+            <select id="brand" name="brand" required>
+                <option value="">選択してください</option>
+                {% for brand_data in brands %}
+                    <option value="{{ brand_data.id }}" {% if brand_selected == brand_data.id %}selected{% endif %}>
+                        {{ brand_data.display }}
+                    </option>
+                {% endfor %}
+            </select>
+            <label for="product_name">製品名・型番を入力してください</label>
+            <input type="text" id="product_name" name="product_name" placeholder="例: XRJ-55A80L" value="{{ model_prefill|default:'' }}" required>
+            <button type="submit" name="web_search_submit">検索して開始</button>
+        </form>
+
+        </div>
+
+    <script>
+        const webSearchForm = document.getElementById('web-search-form');
+        // const pdfUploadForm = document.getElementById('pdf-upload-form'); // 機能復活時にコメントを外す
+        const loadingOverlay = document.getElementById('loading-overlay');
+
+        function showLoading() {
+            loadingOverlay.style.display = 'flex';
+        }
+
+        if (webSearchForm) {
+            webSearchForm.addEventListener('submit', showLoading);
+        }
+        /* 機能復活時にコメントを外す
+        if (pdfUploadForm) {
+            pdfUploadForm.addEventListener('submit', showLoading);
+        }
+        */
+    </script>
+    </body>
+</html>

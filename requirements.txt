@@ -1,0 +1,36 @@
+# DjangoとWebサーバー
+django
+gunicorn
+
+# OpenAI連携
+openai
+cohere
+langchain-openai
+python-dotenv
+
+# AIのコアロジック (LangChain)
+langchain
+langchain-community
+langchain-text-splitters
+langchain-core
+
+# ベクトル検索
+faiss-cpu
+
+# PDF & 画像処理 (通常抽出 + OCR)
+pypdf
+pdfplumber
+Pillow
+google-cloud-vision
+google-cloud-storage
+
+# Web検索 & HTML解析
+google-api-python-client
+requests
+beautifulsoup4
+lxml
+selenium
+webdriver-manager
+selenium-stealth
+
+whitenoise

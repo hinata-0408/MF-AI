@@ -1,0 +1,14 @@
+<div class="message ai-message">
+    <pre>{{ latest_ai_a.answer }}</pre>
+    <div class="metadata">
+        <strong>信頼度:</strong> {{ latest_ai_a.confidence_percent|default:"-" }}%<br>
+        <strong>出典:</strong> {{ latest_ai_a.unique_pages_str|default:"N/A" }}
+    </div>
+    {% if latest_ai_a.followups %}
+    <div class="followups">
+        {% for followup_q in latest_ai_a.followups %}
+            <button onclick="document.querySelector('input[name=q]').value='{{ followup_q|escapejs }}'; htmx.trigger('#chat-form', 'submit')">{{ followup_q }}</button>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>

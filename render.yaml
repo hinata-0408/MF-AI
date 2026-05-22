@@ -1,0 +1,24 @@
+# render.yaml - あなたのWebサービス設定
+services:
+  - type: web
+    name: new_MF_AI # ◆Settings > General > Name
+    env: python
+    plan: standard   # ◆Settings > Instance Type
+    region: oregon # あなたのリージョンに合わせて変更 (例: oregon, frankfurt)
+
+    # ◆Settings > Build & Deploy
+    branch: main # Branch
+    buildCommand: "pip install --upgrade pip && pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate"
+    startCommand: "gunicorn config.wsgi" # ★ app:app から変更
+
+    # ▼▼▼ ここが最重要ポイント ▼▼▼
+    # UIにはない「Chromeをインストールする」という追加指示
+    buildpacks:
+      - url: heroku/python
+      - url: https://github.com/heroku/heroku-buildpack-google-chrome
+
+# これ以降は必要に応じて設定を追加します
+# (例: 環境変数など)
+# envVars:
+#   - key: PYTHON_VERSION
+#     value: 3.11.4

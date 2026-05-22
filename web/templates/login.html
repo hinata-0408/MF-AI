@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ログイン - MF AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: system-ui, sans-serif; background:#f0f4f8; margin:0; padding:20px; color:#222; display:flex; justify-content:center; align-items:center; min-height:100vh; }
+        .login-container { background:white; padding:40px; border-radius:12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width:100%; max-width:400px; }
+        h1 { text-align:center; color:#172E7C; margin-bottom:20px; }
+        form { display:flex; flex-direction:column; }
+        label { margin:12px 0 6px; font-weight:500; color:#172E7C; }
+        input { width:100%; padding:14px; font-size:16px; border:1px solid #bbb; border-radius:8px; box-sizing: border-box; }
+        button { padding:14px; font-size:16px; border:none; border-radius:8px; background:#172E7C; color:#fff; cursor:pointer; margin-top:20px; }
+        .errorlist { list-style:none; padding:10px; margin:10px 0 0 0; background:#fff2f2; border:1px solid #cc0000; color:#8b0000; border-radius:8px; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1>MF AI ログイン</h1>
+        <form method="post">
+            {% csrf_token %}
+            
+            {% if form.errors %}
+                {{ form.errors }}
+            {% endif %}
+
+            <label for="id_username">ユーザー名</label>
+            <input type="text" name="username" autofocus required id="id_username">
+
+            <label for="id_password">パスワード</label>
+            <input type="password" name="password" required id="id_password">
+            
+            <button type="submit">ログイン</button>
+        </form>
+    </div>
+</body>
+</html>

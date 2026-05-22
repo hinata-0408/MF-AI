@@ -1,0 +1,11 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.DS_Store
+db.sqlite3
+.env
+downloads/
+indices/
+my-project-1756872016409-dc768419c2f8.json

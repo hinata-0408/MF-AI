@@ -1,0 +1,310 @@
+{% load static %} <!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>MF-AI-chat</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="apple-touch-icon" href="{% static 'images/app-icon.png' %}">
+    <style>
+    html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        font-family: system-ui, sans-serif;
+        background: #f0f4f8;
+        color: #333;
+    }
+
+    .header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        background: #172E7C;
+        color: white;
+        padding: 12px 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .header h1 { margin: 0; font-size: 1.1rem; }
+    .new-manual-link { font-size: 0.8rem; color: #172E7C; background-color: #f0f4f8; padding: 8px 14px; border-radius: 20px; text-decoration: none; transition: background-color 0.2s; border: 1px solid #dde3ec; white-space: nowrap; }
+    .new-manual-link:hover { background-color: #e2e8f0; }
+
+    .chat-container {
+        padding-top: 70px;
+        padding-bottom: 120px;
+        padding-left: 20px;
+        padding-right: 20px;
+        height: 100%;
+        overflow-y: auto;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .message { max-width: 80%; margin-bottom: 15px; padding: 12px 18px; border-radius: 18px; line-height: 1.5; animation: fadeIn 0.3s ease-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .user-message { background: #dcf8c6; align-self: flex-end; margin-left: auto; }
+    .ai-message { background: #ffffff; align-self: flex-start; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .ai-message pre { white-space: pre-wrap; word-wrap: break-word; font-family: inherit; margin: 0; }
+    .metadata { font-size: 0.8rem; color: #666; margin-top: 10px; border-top: 1px solid #eee; padding-top: 8px; }
+    
+    /* 👇 ストリーミング中の表示用 */
+    .ai-message.streaming .answer-text::after {
+        content: '●';
+        color: #bbb;
+    margin-left: 2px;
+    animation: blink 1s infinite;
+    }
+    @keyframes blink {
+        0%, 50% { opacity: 1; }
+        51%, 100% { opacity: 0; }
+    }
+    
+    .followups button {
+        background: #EDF2FB;
+        color: #172E7C;
+        border: 1px solid #C3D1F1;
+        padding: 6px 12px;
+        border-radius: 15px;
+        margin-right: 8px;
+        margin-top: 8px;
+        cursor: pointer;
+    }
+
+    .form-container {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        background: #ffffff;
+        padding: 15px;
+        border-top: 1px solid #dde3ec;
+    }
+    .form-wrapper { max-width: 720px; margin: 0 auto; }
+    form { display: flex; }
+    input[type="text"] { flex: 1; padding: 14px; font-size: 16px; border: 1px solid #bbb; border-radius: 25px 0 0 25px; outline: none; }
+    button[type="submit"] { padding: 14px 20px; font-size: 16px; border: none; background: #172E7C; color: white; cursor: pointer; border-radius: 0 25px 25px 0; transition: background-color 0.2s; }
+    button[type="submit"]:hover { background: #3B569A; }
+    button[type="submit"]:disabled { background: #ccc; cursor: not-allowed; }
+
+    #loading-indicator { display: none; justify-content: center; align-items: center; padding-top: 10px; }
+    .spinner { display: inline-block; border: 4px solid rgba(0,0,0,0.1); border-left-color: #172E7C; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; vertical-align: middle; margin-right: 10px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.ai-message.answer-reveal {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+/* ストリーミング中の点滅カーソル */
+.ai-message.streaming .answer-text::after {
+    content: '●';
+    color: #bbb;
+    margin-left: 2px;
+    animation: blink 1s infinite;
+}
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>{{ product_name }} - MF AI</h1>
+        <div>
+            {% if pdf_url %}
+                <a href="{{ pdf_url }}" target="_blank" class="new-manual-link" style="margin-right: 10px;">PDFを表示</a>
+            {% endif %}
+            <a href="{% url 'load_manual' %}" class="new-manual-link">別のマニュアルを読み込む</a>
+        </div>
+    </div>
+
+    <div class="chat-container" id="chat-history-container">
+        {% for entry in chat_history %}
+            {% if entry.speaker == 'user' %}
+                <div class="message user-message">{{ entry.message }}</div>
+            {% elif entry.speaker == 'ai' %}
+                {% include 'partials/_chat_response.html' with latest_ai_a=entry.data %}
+            {% endif %}
+        {% endfor %}
+    </div>
+
+    <div class="form-container">
+        <div class="form-wrapper">
+            <form id="chat-form">
+                {% csrf_token %}
+                <input type="text" name="q" id="question-input" placeholder="質問を入力してください..." autofocus autocomplete="off">
+                <button type="submit" id="submit-btn">送信</button>
+            </form>
+            <div id="loading-indicator">
+                <div class="spinner"></div> <span id="loading-message">AIが考え中です...</span>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const chatForm = document.getElementById('chat-form');
+        const inputField = document.getElementById('question-input');
+        const submitBtn = document.getElementById('submit-btn');
+        const chatContainer = document.getElementById('chat-history-container');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const loadingMessage = document.getElementById('loading-message');
+        const indexName = "{{ idx }}";
+        
+        let isProcessing = false;
+
+        chatForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (isProcessing) return;
+            
+            const question = inputField.value.trim();
+            if (question === '') return;
+            
+            isProcessing = true;
+            submitBtn.disabled = true;
+            
+            // ユーザーメッセージを表示
+            const userMessageDiv = document.createElement('div');
+            userMessageDiv.className = 'message user-message';
+            userMessageDiv.textContent = question;
+            chatContainer.appendChild(userMessageDiv);
+            scrollToBottom();
+            
+            // 入力欄をクリア
+            inputField.value = '';
+            
+            // AI応答用のコンテナを作成
+            const aiMessageDiv = document.createElement('div');
+            aiMessageDiv.className = 'message ai-message streaming';
+            aiMessageDiv.innerHTML = '<div class="answer-text"></div>';
+            chatContainer.appendChild(aiMessageDiv);
+            scrollToBottom();
+            
+            const answerTextDiv = aiMessageDiv.querySelector('.answer-text');
+            
+            // Server-Sent Eventsで受信
+            const eventSource = new EventSource(
+                `/chat/stream/?idx=${encodeURIComponent(indexName)}&q=${encodeURIComponent(question)}`
+            );
+            
+            let fullAnswerData = null;
+            
+            eventSource.addEventListener('message', function(e) {
+        try {
+            const data = JSON.parse(e.data);
+            
+            if (data.type === 'progress') {
+                // 進捗メッセージを吹き出し内に表示
+                answerTextDiv.innerHTML = `<em style="color: #999;">${escapeHtml(data.message)}</em>`;
+                scrollToBottom();
+                
+            } else if (data.type === 'complete') {
+                // 完了時に最終結果を表示
+                fullAnswerData = data.data;
+                
+                // 👇 ストリーミングクラスを削除して、アニメーションクラスを追加
+                aiMessageDiv.classList.remove('streaming');
+                aiMessageDiv.classList.add('answer-reveal'); // 👈 追加
+                
+                // 回答を整形して表示
+                let html = `<div class="answer-text">${escapeHtml(fullAnswerData.answer).replace(/\n/g, '<br>')}</div>`;
+                
+                // 信頼度
+                if (fullAnswerData.confidence !== undefined) {
+                    const confidencePercent = Math.round(fullAnswerData.confidence * 100);
+                    html += `<div class="metadata">信頼度: ${confidencePercent}%</div>`;
+                }
+                
+                // 引用（ページ番号）
+                if (fullAnswerData.citations && fullAnswerData.citations.length > 0) {
+                    const pages = [...new Set(fullAnswerData.citations.map(c => c.page))].sort((a, b) => a - b);
+                    const pagesStr = pages.map(p => `p.${p}`).join(', ');
+                    html += `<div class="metadata">参照ページ: ${pagesStr}</div>`;
+                }
+                
+                // フォローアップ質問
+                if (fullAnswerData.followups && fullAnswerData.followups.length > 0) {
+                    html += '<div class="followups">';
+                    fullAnswerData.followups.forEach(followup => {
+                        html += `<button onclick="askFollowup('${escapeHtml(followup).replace(/'/g, "\\'")}')">${escapeHtml(followup)}</button>`;
+                    });
+                    html += '</div>';
+                }
+                
+                aiMessageDiv.innerHTML = html;
+                scrollToBottom();
+                
+                // 接続を閉じる
+                eventSource.close();
+                
+                // UI状態をリセット
+                isProcessing = false;
+                submitBtn.disabled = false;
+                inputField.focus();
+            }
+            
+        } catch (error) {
+            console.error('Parse error:', error);
+        }
+    });
+            
+            eventSource.addEventListener('error', function(e) {
+                console.error('SSE Error:', e);
+                eventSource.close();
+                
+                aiMessageDiv.classList.remove('streaming');
+                aiMessageDiv.innerHTML = '<div class="answer-text">エラーが発生しました。もう一度お試しください。</div>';
+                
+                isProcessing = false;
+                submitBtn.disabled = false;
+                loadingIndicator.style.display = 'none';
+                loadingMessage.textContent = 'AIが考え中です...';
+            });
+        });
+
+        // フォローアップ質問をクリックした時の処理
+        window.askFollowup = function(question) {
+            inputField.value = question;
+            chatForm.dispatchEvent(new Event('submit'));
+        };
+
+        // HTMLエスケープ関数
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // チャットコンテナを一番下までスクロール
+        function scrollToBottom() {
+            setTimeout(() => {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }, 50);
+        }
+        
+        // ページ読み込み時に一番下までスクロール
+        document.addEventListener('DOMContentLoaded', (event) => {
+            scrollToBottom();
+        });
+    </script>
+    </body>
+</html>
